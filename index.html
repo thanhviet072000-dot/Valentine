@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eternal Love for Thu Vy ❤️</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@300;600&display=swap');
+        
+        body { margin: 0; background: #0a0005; overflow: hidden; font-family: 'Quicksand', sans-serif; touch-action: none; }
+        
+        #ui-layer {
+            position: fixed; inset: 0; pointer-events: none; z-index: 100;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 25px;
+        }
+
+        .header { 
+            text-align: center; color: #fff; text-shadow: 0 0 20px #ff4d94;
+            font-family: 'Dancing Script', cursive; font-size: 2.5rem;
+        }
+
+        .controls { display: flex; justify-content: center; gap: 15px; pointer-events: auto; }
+
+        button {
+            background: rgba(255, 77, 148, 0.25); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2); color: white;
+            padding: 14px 28px; border-radius: 50px; cursor: pointer;
+            font-weight: 600; transition: 0.3s; text-transform: uppercase;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
+
+        #card-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            z-index: 200; display: none; opacity: 0; transition: 0.5s;
+            backdrop-filter: blur(8px); pointer-events: auto;
+        }
+
+        #card-container {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+            width: 85%; max-width: 380px; 
+            background: linear-gradient(135deg, rgba(40, 0, 10, 0.8), rgba(80, 0, 20, 0.6));
+            backdrop-filter: blur(30px); border-radius: 25px; 
+            border: 1.5px solid rgba(255, 215, 0, 0.5); 
+            padding: 40px; text-align: center; z-index: 201; 
+            transition: 0.6s cubic-bezier(0.2, 1, 0.2, 1);
+            color: white; visibility: hidden; opacity: 0;
+            box-shadow: 0 0 60px rgba(255, 77, 148, 0.4);
+        }
+        #card-container.active { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
+        #card-overlay.active { display: block; opacity: 1; }
+
+        .close-btn {
+            margin-top: 30px; padding: 10px 25px; font-size: 0.8rem;
+            border-radius: 20px; background: linear-gradient(to right, #ff4d94, #ff0055);
+            border: none; color: white; cursor: pointer;
+        }
+
+        #loader { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; color: #ff4d94; transition: 1s; letter-spacing: 3px; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div id="loader">KHOẢNH KHẮC CỦA VY...</div>
+
+    <div id="ui-layer">
+        <div class="header" id="stage-title">Thiệp Valentine</div>
+        
+        <div id="card-overlay" onclick="toggleCard(false)"></div>
+        <div id="card-container">
+            <h2 style="font-family: 'Dancing Script'; font-size: 2.8rem; color: #ffd700; margin: 0;">To My Love ❤️</h2>
+            <div id="text-body" style="line-height: 2; margin: 25px 0; font-size: 1.1rem; font-weight: 300;"></div>
+            <button class="close-btn" onclick="toggleCard(false)">Khép lại tâm tình ×</button>
+        </div>
+
+        <div class="controls">
+            <button onclick="toggleCard(true)">📩 Mở Thư</button>
+            <button id="next-btn" onclick="nextStage()">Tầng Tiếp ➔</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, currentStage = 1;
+        let elements = [], speed = 0.4, targetSpeed = 0.4;
+
+        const messages = {
+            1: "Valentine này, anh dành trọn tâm trí để tạo ra thế giới này cho Vy. Mong em luôn giữ được nụ cười tỏa nắng ấy. Với anh, mỗi ngày có em đều là lễ tình nhân. Yêu Vy! ❤️",
+            2: "Một rừng hoa hồng ruby đang rơi xuống chỉ để làm nền cho vẻ đẹp của em. Từng cánh hoa là một cái ôm mà anh muốn gửi đến em ngay lúc này. 🌹✨",
+            3: "Vũ trụ này rộng lớn, nhưng trái tim anh đã tìm được bến đỗ nơi em. Hãy chạm giữ để chúng ta cùng bay qua dải ngân hà tình yêu này nhé! 🚀💖"
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.z = 100;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            loadStage(1);
+            animate();
+            
+            setTimeout(() => {
+                document.getElementById('loader').style.opacity = '0';
+                setTimeout(() => document.getElementById('loader').style.display = 'none', 1000);
+            }, 2000);
+        }
+
+        function createTexture(type) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            if(type === 'heart') {
+                ctx.fillStyle = '#ff4d94';
+                ctx.beginPath();
+                ctx.moveTo(64, 24);
+                ctx.bezierCurveTo(64, 20, 56, 4, 36, 4); ctx.bezierCurveTo(8, 4, 8, 40, 8, 40);
+                ctx.bezierCurveTo(8, 64, 24, 88, 64, 112); ctx.bezierCurveTo(104, 88, 120, 64, 120, 40);
+                ctx.bezierCurveTo(120, 40, 120, 4, 92, 4); ctx.bezierCurveTo(76, 4, 64, 20, 64, 24);
+                ctx.fill();
+            } else if(type === 'rose') {
+                // Cánh hoa mềm mại hơn
+                ctx.fillStyle = '#d4002d';
+                ctx.beginPath();
+                ctx.moveTo(64, 32);
+                ctx.bezierCurveTo(24, 8, 8, 64, 64, 112);
+                ctx.bezierCurveTo(120, 64, 104, 8, 64, 32);
+                ctx.fill();
+                // Thêm độ bóng
+                ctx.fillStyle = '#ff3366';
+                ctx.beginPath();
+                ctx.ellipse(50, 40, 10, 5, Math.PI/4, 0, Math.PI*2);
+                ctx.fill();
+            } else if(type === 'sparkle') {
+                const grad = ctx.createRadialGradient(64,64,0,64,64,64);
+                grad.addColorStop(0, 'white');
+                grad.addColorStop(0.2, 'rgba(255, 215, 0, 0.8)');
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(64, 64, 60, 0, Math.PI*2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function loadStage(stage) {
+            elements.forEach(el => scene.remove(el));
+            elements = [];
+            currentStage = stage;
+            const title = document.getElementById('stage-title');
+
+            if(stage === 1) {
+                title.innerText = "The Golden Card 💌";
+                scene.background = new THREE.Color(0x120008);
+                const sparkTex = createTexture('sparkle');
+                // Tạo bụi kim cương
+                for(let i=0; i<400; i++) {
+                    const mat = new THREE.SpriteMaterial({ map: sparkTex, transparent: true, opacity: 0.6 });
+                    const s = new THREE.Sprite(mat);
+                    s.position.set((Math.random()-0.5)*350, (Math.random()-0.5)*350, (Math.random()-0.5)*150);
+                    s.scale.set(1.5, 1.5, 1);
+                    scene.add(s); elements.push(s);
+                }
+                // Thêm vài trái tim lớn lơ lửng làm điểm nhấn
+                const heartTex = createTexture('heart');
+                for(let i=0; i<20; i++) {
+                    const mat = new THREE.SpriteMaterial({ map: heartTex, transparent: true, opacity: 0.4 });
+                    const s = new THREE.Sprite(mat);
+                    s.position.set((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*50);
+                    s.scale.set(8, 8, 1);
+                    scene.add(s); elements.push(s);
+                }
+            } else if(stage === 2) {
+                title.innerText = "Rose Avalanche 🌹";
+                scene.background = new THREE.Color(0x1a0005);
+                const roseTex = createTexture('rose');
+                // Tăng lên 500 cánh hoa cho hoành tráng
+                for(let i=0; i<500; i++) {
+                    const mat = new THREE.SpriteMaterial({ map: roseTex, transparent: true, opacity: Math.random() });
+                    const s = new THREE.Sprite(mat);
+                    s.position.set((Math.random()-0.5)*400, (Math.random()*400 - 200), (Math.random()-0.5)*250);
+                    s.scale.set(4, 4, 1);
+                    s.userData = { 
+                        speed: Math.random()*0.8 + 0.3, 
+                        swing: Math.random()*2,
+                        rot: (Math.random()-0.5)*0.05 
+                    };
+                    scene.add(s); elements.push(s);
+                }
+            } else {
+                title.innerText = "Hyper Heart VR 🚀";
+                scene.background = new THREE.Color(0x000000);
+                const heartTex = createTexture('heart');
+                for(let i=0; i<600; i++) {
+                    const mat = new THREE.SpriteMaterial({ map: heartTex, transparent: true, blending: THREE.AdditiveBlending });
+                    const s = new THREE.Sprite(mat);
+                    s.position.set((Math.random()-0.5)*600, (Math.random()-0.5)*600, (Math.random()-0.5)*1200);
+                    s.scale.set(7, 7, 1);
+                    scene.add(s); elements.push(s);
+                }
+            }
+        }
+
+        function nextStage() {
+            currentStage = (currentStage % 3) + 1;
+            loadStage(currentStage);
+            toggleCard(false);
+            document.getElementById('next-btn').innerText = currentStage === 3 ? "Bắt đầu lại ↺" : "Tầng Tiếp ➔";
+        }
+
+        function toggleCard(show) {
+            const card = document.getElementById('card-container');
+            const overlay = document.getElementById('card-overlay');
+            if(show) {
+                document.getElementById('text-body').innerText = messages[currentStage];
+                card.classList.add('active'); overlay.classList.add('active');
+            } else {
+                card.classList.remove('active'); overlay.classList.remove('active');
+            }
+        }
+
+        window.addEventListener('touchstart', () => { if(currentStage===3) targetSpeed = 15; });
+        window.addEventListener('touchend', () => { targetSpeed = 0.4; });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
+            speed += (targetSpeed - speed) * 0.1;
+
+            elements.forEach((el, i) => {
+                if(currentStage === 3) {
+                    el.position.z += speed;
+                    if(el.position.z > 100) el.position.z = -1000;
+                } else if(currentStage === 2) {
+                    el.position.y -= el.userData.speed;
+                    el.position.x += Math.sin(time + el.userData.swing) * 0.3;
+                    el.material.rotation += el.userData.rot;
+                    if(el.position.y < -200) el.position.y = 200;
+                } else {
+                    // Hiệu ứng bồng bềnh nhẹ cho tầng 1
+                    el.position.y += Math.sin(time + i) * 0.05;
+                    el.position.x += Math.cos(time + i) * 0.05;
+                }
+            });
+            renderer.render(scene, camera);
+        }
+
+        init();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
